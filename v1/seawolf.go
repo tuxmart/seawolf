@@ -39,8 +39,6 @@ func Run(address string, opts ...Option) error {
 
 	client := filer_pb.NewSeaweedFilerClient(conn)
 
-	eventListeners := make([]internal.FileListener, 0)
-
 	fmt.Println("Listening file metadata...")
 	for {
 		req, err := client.SubscribeMetadata(context.TODO(), &filer_pb.SubscribeMetadataRequest{
@@ -58,20 +56,20 @@ func Run(address string, opts ...Option) error {
 		if notification := event.EventNotification; notification != nil {
 			if event.GetDirectory() != notification.GetNewParentPath() {
 				if notification.OldEntry != nil && notification.NewEntry != nil {
-					for _, listener := range eventListeners {
+					for _, listener := range wolf.Listeners {
 						listener.Move(event)
 					}
 				}
 			} else if notification.NewEntry != nil && notification.OldEntry == nil {
-				for _, listener := range eventListeners {
+				for _, listener := range wolf.Listeners {
 					listener.Create(event)
 				}
 			} else if notification.NewEntry == nil && notification.OldEntry != nil {
-				for _, listener := range eventListeners {
+				for _, listener := range wolf.Listeners {
 					listener.Delete(event)
 				}
 			} else if notification.NewEntry != nil && notification.OldEntry != nil {
-				for _, listener := range eventListeners {
+				for _, listener := range wolf.Listeners {
 					listener.Update(event)
 				}
 			} else {
