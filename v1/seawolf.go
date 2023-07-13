@@ -28,7 +28,6 @@ func New(address string, opts ...Option) *SeaWolf {
 	if err != nil {
 		panic(err)
 	}
-	defer conn.Close()
 	client := filer_pb.NewSeaweedFilerClient(conn)
 
 	wolf := &SeaWolf{
