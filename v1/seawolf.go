@@ -11,6 +11,7 @@ import (
 )
 
 type SeaWolf struct {
+	client    filer_pb.SeaweedFilerClient
 	Listeners []internal.FileListener
 }
 
@@ -22,14 +23,16 @@ func WithListener(listener internal.FileListener) Option {
 	}
 }
 
-func Run(address string, opts ...Option) error {
+func New(address string, opts ...Option) *SeaWolf {
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
-		return err
+		panic(err)
 	}
 	defer conn.Close()
+	client := filer_pb.NewSeaweedFilerClient(conn)
 
 	wolf := &SeaWolf{
+		client:    client,
 		Listeners: make([]internal.FileListener, 0),
 	}
 
@@ -37,11 +40,13 @@ func Run(address string, opts ...Option) error {
 		opt(wolf)
 	}
 
-	client := filer_pb.NewSeaweedFilerClient(conn)
+	return wolf
+}
 
+func (wolf *SeaWolf) Run() error {
 	fmt.Println("Listening file metadata...")
 	for {
-		req, err := client.SubscribeMetadata(context.TODO(), &filer_pb.SubscribeMetadataRequest{
+		req, err := wolf.client.SubscribeMetadata(context.TODO(), &filer_pb.SubscribeMetadataRequest{
 			SinceNs: time.Now().UnixNano(),
 		})
 		if err != nil {
@@ -77,4 +82,8 @@ func Run(address string, opts ...Option) error {
 			}
 		}
 	}
+}
+
+func (wolf *SeaWolf) Client() filer_pb.SeaweedFilerClient {
+	return wolf.client
 }

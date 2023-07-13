@@ -19,7 +19,8 @@ import (
 
 func main() {
 	listener := &example.LogFileEventHandler{}
-	if err := seawolf.Run("localhost:18888", seawolf.WithListener(listener)); err != nil {
+	wolf := seawolf.New("localhost:18888", seawolf.WithListener(listener))
+	if err := wolf.Run(); err != nil {
 		panic(err)
 	}
 }
