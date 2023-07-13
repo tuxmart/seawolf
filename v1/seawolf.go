@@ -11,8 +11,9 @@ import (
 )
 
 type SeaWolf struct {
-	client    filer_pb.SeaweedFilerClient
-	Listeners []internal.FileListener
+	client      filer_pb.SeaweedFilerClient
+	Listeners   []internal.FileListener
+	Directories []string
 }
 
 type Option func(*SeaWolf)
@@ -20,6 +21,12 @@ type Option func(*SeaWolf)
 func WithListener(listener internal.FileListener) Option {
 	return func(s *SeaWolf) {
 		s.Listeners = append(s.Listeners, listener)
+	}
+}
+
+func WithDirectories(directories []string) Option {
+	return func(s *SeaWolf) {
+		s.Directories = directories
 	}
 }
 
@@ -31,8 +38,9 @@ func New(address string, opts ...Option) *SeaWolf {
 	client := filer_pb.NewSeaweedFilerClient(conn)
 
 	wolf := &SeaWolf{
-		client:    client,
-		Listeners: make([]internal.FileListener, 0),
+		client:      client,
+		Listeners:   []internal.FileListener{},
+		Directories: []string{"/"},
 	}
 
 	for _, opt := range opts {
@@ -43,10 +51,10 @@ func New(address string, opts ...Option) *SeaWolf {
 }
 
 func (wolf *SeaWolf) Run() error {
-	fmt.Println("Listening file metadata...")
 	for {
 		req, err := wolf.client.SubscribeMetadata(context.TODO(), &filer_pb.SubscribeMetadataRequest{
-			SinceNs: time.Now().UnixNano(),
+			Directories: wolf.Directories,
+			SinceNs:     time.Now().UnixNano(),
 		})
 		if err != nil {
 			return err
@@ -80,6 +88,7 @@ func (wolf *SeaWolf) Run() error {
 				return fmt.Errorf("unexpected event %v", event)
 			}
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
